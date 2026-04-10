@@ -1,0 +1,20 @@
+:8000 {
+	# Ordered handle blocks only — /operator and /provider must not hit resident catch-all.
+	# reverse_proxy sets X-Forwarded-For / X-Forwarded-Proto / Host for upstreams from this hop (Caddy docs).
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy api:3001
+	}
+
+	handle /operator* {
+		reverse_proxy operator:3000
+	}
+
+	handle /provider* {
+		reverse_proxy provider:3000
+	}
+
+	handle {
+		reverse_proxy resident:3000
+	}
+}

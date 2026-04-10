@@ -1,0 +1,48 @@
+services:
+  # In production dual-app mode, infrastructure services should not be internet-exposed.
+  # We override published ports from docker-compose.yml to an empty list, keeping them internal
+  # on the Compose network. Preserve these comments when syncing back to the ce-ai repository.
+  db:
+    ports: []
+
+  minio:
+    ports: []
+
+  db-seed:
+    environment:
+      SEED_DEMO_USERS: "false"
+
+  backend-api:
+    build:
+      target: runner
+    restart: always
+    environment:
+      NODE_ENV: production
+    ports: []
+
+  patient-pwa:
+    build:
+      target: runner
+    restart: always
+    # Expose patient app only on loopback high port.
+    # Master edge Caddy proxies public HTTPS traffic to this local endpoint.
+    ports:
+      - "127.0.0.1:28080:3000"
+    environment:
+      # Reverse proxy aware auth host handling is required behind edge Caddy.
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
+      # Public URL used by auth callbacks in production testing.
+      PATIENT_NEXTAUTH_URL: ${PATIENT_NEXTAUTH_URL:-https://ceai.162.62.230.162.nip.io}
+      AUTH_URL: ${PATIENT_NEXTAUTH_URL:-https://ceai.162.62.230.162.nip.io}
+      NEXTAUTH_URL: ${PATIENT_NEXTAUTH_URL:-https://ceai.162.62.230.162.nip.io}
+      NODE_ENV: production
+
+  operator-portal:
+    build:
+      target: runner
+    restart: always
+    # Keep operator internal-only unless you later add a dedicated hostname route.
+    ports: []
+    environment:
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
+      NODE_ENV: production

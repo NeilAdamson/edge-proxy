@@ -1,0 +1,10 @@
+# Edge Caddy is the ONLY internet-facing proxy in this topology.
+# It routes hostnames to loopback-bound upstreams from each project stack.
+
+hms.162.62.230.162.nip.io {
+  reverse_proxy 127.0.0.1:18080
+}
+
+ceai.162.62.230.162.nip.io {
+  reverse_proxy 127.0.0.1:28080
+}

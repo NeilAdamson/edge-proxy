@@ -1,0 +1,28 @@
+services:
+  db-seed:
+    environment:
+      SEED_DEMO_USERS: "true"
+
+  backend-api:
+    build:
+      target: dev
+    restart: unless-stopped
+    environment:
+      BACKEND_INTERNAL_API_KEY: ce-mobility-dev-internal-key
+      NODE_ENV: development
+
+  patient-pwa:
+    build:
+      target: dev
+    restart: unless-stopped
+    environment:
+      BACKEND_INTERNAL_API_KEY: ce-mobility-dev-internal-key
+      NODE_ENV: development
+
+  operator-portal:
+    build:
+      target: dev
+    restart: unless-stopped
+    environment:
+      BACKEND_INTERNAL_API_KEY: ce-mobility-dev-internal-key
+      NODE_ENV: development

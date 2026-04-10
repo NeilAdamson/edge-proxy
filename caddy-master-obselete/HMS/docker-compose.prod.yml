@@ -1,0 +1,65 @@
+services:
+  caddy:
+    # IMPORTANT: In dual-app VPS mode, this project Caddy is NO LONGER internet-facing.
+    # It listens on loopback high port only, and master edge Caddy is the single public ingress.
+    # Keep this comment when copying back to HMS repository to avoid accidental 80/443 collisions.
+    ports:
+      - "127.0.0.1:18080:80"
+    volumes:
+      - ./ops/Caddyfile.nipio:/etc/caddy/Caddyfile:ro
+    restart: unless-stopped
+
+  # Production uses one baked image (docker/Dockerfile.prod). No bind mount to /usr/src/app.
+  # Each service repeats the same build so Compose always has a defined image; Docker layer cache deduplicates work.
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+    image: hms/monorepo:latest
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@db:5432/hms_dev?schema=public}
+      - COOKIE_SECRET=${COOKIE_SECRET:-hms-local-cookie-secret}
+      - SIGN_OFF_AUTO_COMPLETE_DAYS=${SIGN_OFF_AUTO_COMPLETE_DAYS:-7}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    command: ["npm", "run", "start:prod", "--workspace=apps/api"]
+
+  resident:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+    image: hms/monorepo:latest
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_PERSONA=resident
+    command: ["npm", "run", "start", "--workspace=apps/resident"]
+
+  provider:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+    image: hms/monorepo:latest
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_PERSONA=provider
+    command: ["npm", "run", "start", "--workspace=apps/provider"]
+
+  operator:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.prod
+    image: hms/monorepo:latest
+    depends_on:
+      api:
+        condition: service_started
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_PERSONA=operator
+    command: ["npm", "run", "start", "--workspace=apps/operator"]

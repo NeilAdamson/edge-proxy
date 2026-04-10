@@ -1,0 +1,28 @@
+# Local development: bind-mount the repo and share node_modules across app containers.
+# Use with: docker compose -f docker-compose.yml -f docker-compose.dev.yml
+services:
+  api:
+    volumes:
+      - .:/usr/src/app
+      - node_modules:/usr/src/app/node_modules
+  resident:
+    volumes:
+      - .:/usr/src/app
+      - node_modules:/usr/src/app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+  provider:
+    volumes:
+      - .:/usr/src/app
+      - node_modules:/usr/src/app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+  operator:
+    volumes:
+      - .:/usr/src/app
+      - node_modules:/usr/src/app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true

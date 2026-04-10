@@ -1,0 +1,169 @@
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT:-5433}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ce_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password123}
+      POSTGRES_DB: ${POSTGRES_DB:-ce_mobility}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ce_admin} -d ${POSTGRES_DB:-ce_mobility}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9002}:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+  db-migrate:
+    build:
+      context: .
+      dockerfile: apps/backend-api/Dockerfile
+      target: runner
+    restart: "no"
+    env_file:
+      - .env
+    working_dir: /app/packages/database
+    command: ["npx", "prisma", "migrate", "deploy"]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db-seed:
+    build:
+      context: .
+      dockerfile: apps/backend-api/Dockerfile
+      target: runner
+    restart: "no"
+    env_file:
+      - .env
+    environment:
+      SEED_DEMO_USERS: ${SEED_DEMO_USERS:-false}
+    working_dir: /app/packages/database
+    command:
+      [
+        "sh",
+        "-lc",
+        "if [ \"$$SEED_DEMO_USERS\" = \"true\" ]; then npm run seed; else echo 'Skipping demo user seed'; fi"
+      ]
+    depends_on:
+      db:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+
+  backend-api:
+    build:
+      context: .
+      dockerfile: apps/backend-api/Dockerfile
+      target: runner
+    restart: unless-stopped
+    ports:
+      - "${BACKEND_PORT:-3002}:3001"
+    env_file:
+      - .env
+    environment:
+      PORT: 3001
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-http://minio:9000}
+      MINIO_REGION: ${MINIO_REGION:-us-east-1}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME:-ce-case-media}
+    depends_on:
+      db:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/health').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  patient-pwa:
+    build:
+      context: .
+      dockerfile: apps/patient-pwa/Dockerfile
+      target: runner
+    restart: unless-stopped
+    ports:
+      - "${PATIENT_PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
+      AUTH_URL: ${PATIENT_NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_URL: ${PATIENT_NEXTAUTH_URL:-http://localhost:3000}
+      BACKEND_API_BASE_URL: ${BACKEND_API_BASE_URL:-http://backend-api:3001}
+      HOSTNAME: 0.0.0.0
+    depends_on:
+      db:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+      db-seed:
+        condition: service_completed_successfully
+      backend-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  operator-portal:
+    build:
+      context: .
+      dockerfile: apps/operator-portal/Dockerfile
+      target: runner
+    restart: unless-stopped
+    ports:
+      - "${OPERATOR_PORT:-3001}:3000"
+    env_file:
+      - .env
+    environment:
+      AUTH_TRUST_HOST: ${AUTH_TRUST_HOST:-true}
+      AUTH_URL: ${OPERATOR_NEXTAUTH_URL:-http://localhost:3001}
+      NEXTAUTH_URL: ${OPERATOR_NEXTAUTH_URL:-http://localhost:3001}
+      BACKEND_API_BASE_URL: ${BACKEND_API_BASE_URL:-http://backend-api:3001}
+      HOSTNAME: 0.0.0.0
+    depends_on:
+      db:
+        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
+      db-seed:
+        condition: service_completed_successfully
+      backend-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then((response) => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  postgres_data:
+  minio_data:
