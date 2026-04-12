@@ -3,6 +3,12 @@ services:
     image: caddy:2-alpine
     container_name: edge-caddy
     restart: unless-stopped
+    # Ubuntu hosts often put `nameserver 127.0.0.53` in resolv.conf for systemd-resolved.
+    # That address is wrong inside a container (nothing listens there), so ACME/Let's Encrypt
+    # lookups fail with "connection refused" on UDP 53 unless we set resolvers explicitly.
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
     # Single public ingress for both projects on the VPS.
     ports:
       - "80:80"
