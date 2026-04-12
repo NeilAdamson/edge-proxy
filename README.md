@@ -36,9 +36,10 @@ Use the production script (validates compose, brings stack up, prints status):
 
 ```bash
 cd /opt/edge-proxy
-chmod +x ./prod-deploy.sh
 ./prod-deploy.sh
 ```
+
+The executable bit is **stored in git** (`100755`) so `git pull` does not fight with a manual `chmod` on the server. If an old clone still says `Permission denied`, run `sh ./prod-deploy.sh` once or `git checkout -- prod-deploy.sh && git pull` after updating, or `chmod +x ./prod-deploy.sh` only until the next pull that includes the mode fix.
 
 ## Start (manual)
 
