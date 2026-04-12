@@ -1,5 +1,6 @@
 # Edge Caddy is the ONLY internet-facing proxy in this topology.
-# It routes hostnames to loopback-bound upstreams from each project stack.
+# It routes hostnames to loopback-bound upstreams on the **host**.
+# Requires `network_mode: host` in docker-compose so `127.0.0.1` here is the host, not the container.
 
 hms.162.62.230.162.nip.io {
   reverse_proxy 127.0.0.1:18080

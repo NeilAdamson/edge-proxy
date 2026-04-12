@@ -3,16 +3,13 @@ services:
     image: caddy:2-alpine
     container_name: edge-caddy
     restart: unless-stopped
-    # Ubuntu hosts often put `nameserver 127.0.0.53` in resolv.conf for systemd-resolved.
-    # That address is wrong inside a container (nothing listens there), so ACME/Let's Encrypt
-    # lookups fail with "connection refused" on UDP 53 unless we set resolvers explicitly.
-    dns:
-      - 1.1.1.1
-      - 8.8.8.8
-    # Single public ingress for both projects on the VPS.
-    ports:
-      - "80:80"
-      - "443:443"
+    # Use the host network namespace so Caddyfile `127.0.0.1:18080` / `:28080` refer to the
+    # **host** loopback where HMS/ce-ai publish (`127.0.0.1:18080->80` etc.). In default bridge
+    # mode, `127.0.0.1` inside the container is the container itself → `connection refused`
+    # and HTTP 502 from edge. Host mode is the intended layout for this Linux VPS.
+    # (Docker Desktop on Windows/macOS does not support host networking the same way; this
+    # stack targets the production VPS.)
+    network_mode: host
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

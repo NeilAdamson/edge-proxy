@@ -23,6 +23,15 @@ else
   echo "[WARN] Expected container 'edge-caddy' not found in running containers. Check logs: docker compose logs caddy"
 fi
 
+# Upstreams are 127.0.0.1:18080 / :28080 on the **host**. Only network_mode=host makes that work.
+NM="$(docker inspect edge-caddy --format '{{.HostConfig.NetworkMode}}' 2>/dev/null || echo unknown)"
+echo "[INFO] edge-caddy Docker NetworkMode: ${NM}"
+if [ "${NM}" != "host" ]; then
+  echo "[ERROR] NetworkMode must be \"host\" or edge will dial 127.0.0.1 inside the container and get HTTP 502 (connection refused to upstream)."
+  echo "[ERROR] Fix: ensure docker-compose.yml in this directory has \"network_mode: host\", remove any override that clears it, then:"
+  echo "        docker compose -f ${COMPOSE_FILE} up -d --force-recreate"
+fi
+
 echo "[INFO] Public endpoints (after upstream apps are up):"
 echo "  https://hms.162.62.230.162.nip.io"
 echo "  https://ceai.162.62.230.162.nip.io"

@@ -21,11 +21,14 @@ Recommended path on VPS:
 
 - `/opt/edge-proxy`
 
+This stack uses a single **`docker-compose.yml`** (no `docker-compose.prod.yml`). Production and operators run Compose against that file (or set `COMPOSE_FILE` if you fork a variant).
+
 ## Prerequisites
 
 - Docker and Docker Compose plugin available on VPS.
 - Lighthouse security group allows inbound TCP `80` and `443`.
 - HMS and ce-ai stacks running and bound to loopback upstream ports.
+- **Linux host**: edge Caddy uses `network_mode: host` (see `docker-compose.yml`) so upstream addresses `127.0.0.1:18080` / `:28080` in the Caddyfile target the **host** where those ports are published. Without host networking, `127.0.0.1` inside the container is wrong and you get **502** with `dial tcp 127.0.0.1:18080: connect: connection refused` in edge logs.
 
 ## Start (recommended)
 
@@ -79,31 +82,60 @@ If those still fail, confirm something is listening and Caddy started cleanly:
 ```bash
 docker compose ps
 sudo ss -tlnp | grep -E ':80|:443'
-docker port edge-caddy
 docker compose logs --tail 80 caddy
 ```
 
-(`ss` may show `docker-proxy` bound on `0.0.0.0:80` / `:443`; without `sudo`, process names are often hidden.)
+With `network_mode: host`, Caddy binds **directly** on the host (no `docker-proxy`); `docker port edge-caddy` is empty. Use `ss` to verify listeners. Without `sudo`, process names are often hidden.
 
 ## Troubleshooting
 
 ### Let's Encrypt / ACME: `lookup … on 127.0.0.53:53: … connection refused`
 
-Caddy must resolve public hostnames (for example `acme-v02.api.letsencrypt.org`) to obtain certificates. On Ubuntu, Docker sometimes copies a `resolv.conf` that points at **systemd-resolved’s stub** (`127.0.0.53`). **Inside a container**, that loopback address is not the host’s resolver, so DNS fails and TLS issuance retries forever.
+If you ever run edge Caddy **without** `network_mode: host` (not recommended here), Caddy may inherit a broken `resolv.conf` (`127.0.0.53`) and ACME DNS fails. This stack uses **host networking**, so Caddy uses the **host’s** resolver and this is normally not an issue.
 
-This stack sets **explicit DNS servers** on the `caddy` service in `docker-compose.yml` so ACME works regardless of host `resolv.conf`. After changing DNS, recreate the container:
+If you must use bridge mode, set explicit DNS on the service (for example `dns: [1.1.1.1, 8.8.8.8]`) or fix Docker/systemd-resolved integration, then `docker compose up -d --force-recreate`.
+
+### HTTP 502: `dial tcp 127.0.0.1:18080: connect: connection refused`
+
+TLS at the edge works, but the **upstream** TCP connection fails.
+
+1. **Bridge mode** (no `network_mode: host`): `127.0.0.1` in the Caddyfile is the **edge container**, not the host. Fix: use **`network_mode: host`** for edge Caddy, then recreate the container.
+
+2. **Already on host mode** and still `connection refused`: nothing is listening on the **host** at that address/port. That is almost always an **HMS (or ce-ai) deployment** issue, not edge logic: stack stopped, wrong compose file, or **port changed** (e.g. “new port settings” in HMS). You do not need HMS **application** source; you need the **published port** in HMS’s `docker-compose` (or equivalent) for the project Caddy service.
+
+On the VPS, confirm the upstream before debugging edge further:
+
+```bash
+sudo ss -tlnp | grep -E ':18080|:28080'
+curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:18080/ || true
+cd /opt/hms && docker compose ps
+```
+
+HMS `docker-compose.prod.yml` should keep `127.0.0.1:18080:80` on the **project** Caddy service (dual-stack mode). That matches this repo’s `reverse_proxy 127.0.0.1:18080`.
+
+Edge sends `Host: hms.162.62.230.162.nip.io` to the upstream. To mimic that without going through TLS:
+
+```bash
+curl -sv -H "Host: hms.162.62.230.162.nip.io" http://127.0.0.1:18080/ 2>&1 | head -30
+```
+
+If **`curl http://127.0.0.1:18080/` works on the VPS** but edge logs still show `dial tcp 127.0.0.1:18080: connect: connection refused`, edge is **not** using the host network namespace (it is still behaving like bridge mode). Check the **running** container, not only the file:
 
 ```bash
 cd /opt/edge-proxy
-docker compose up -d --force-recreate
-docker compose logs -f caddy
+docker inspect edge-caddy --format '{{.HostConfig.NetworkMode}}'
+docker compose config | grep -A1 network_mode
 ```
 
-If you prefer a host-wide fix instead, configure Docker’s default DNS in `/etc/docker/daemon.json` (then restart Docker).
+You must see **`host`**. If you see **`bridge`** or a network name, fix deployment: **`git pull`** (or copy the current `docker-compose.yml`), remove any **`docker-compose.override.yml`** that drops `network_mode`, then **`docker compose up -d --force-recreate`**. `./prod-deploy.sh` prints `NetworkMode` after deploy and errors if it is not `host`.
+
+If HMS uses a port other than `18080`, update **`Caddyfile`** here (and redeploy edge) so `reverse_proxy` matches **exactly** what HMS publishes on `127.0.0.1`.
+
+`28080` for ce-ai fails the same way until that stack is up or the port is published.
 
 ### HMS stack / upstream
 
-HMS project Caddy should show a publish like `127.0.0.1:18080->80/tcp` on the **host**. Edge Caddy then proxies to `127.0.0.1:18080` on the **host network** (see Caddyfile). If that mapping is missing, edge will return bad gateway once TLS is healthy.
+HMS project Caddy should show a publish like `127.0.0.1:18080->80/tcp` on the **host**. With host networking for edge, the Caddyfile’s `127.0.0.1:18080` must match that **published host port** byte-for-byte. If the mapping is missing or HMS is stopped, edge returns bad gateway once TLS is healthy.
 
 ## Critical policy
 
