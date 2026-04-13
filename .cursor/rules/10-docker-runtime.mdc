@@ -1,0 +1,36 @@
+---
+description: Docker-only runtime and local development guard rails
+globs:
+  - "Dockerfile"
+  - "**/Dockerfile"
+  - "docker-compose.yml"
+  - "docker-compose.yaml"
+  - "compose.yml"
+  - "compose.yaml"
+  - ".env*"
+  - "scripts/**"
+  - "ops/**"
+  - "infra/**"
+---
+
+This repository is Docker-only unless the user explicitly says otherwise.
+
+Runtime rules:
+- Always use Docker or Docker Compose for local development and runtime.
+- Never instruct the user to run the application stack directly on the host OS if a Docker path is available.
+- Never introduce host-only startup steps for app services, databases, queues, caches, or workers unless explicitly requested.
+- If a task would normally be done locally, translate it into the equivalent Docker or Docker Compose command.
+- Run application services and supporting services through Docker or Docker Compose.
+- Prefer changes to Dockerfiles, compose files, entrypoints, startup scripts, and environment configuration over host-based runtime instructions.
+- Keep dev and prod behavior clearly separated.
+- Externalize runtime configuration through env variables or env files.
+
+When changing runtime behavior:
+- Keep ports, health checks, service names, volumes, networks, and dependencies coherent.
+- Update setup and deployment docs where relevant.
+
+Validation:
+- Prefer commands such as:
+  - docker compose up
+  - docker compose exec ...
+  - docker compose run ...

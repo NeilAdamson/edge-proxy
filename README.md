@@ -7,7 +7,8 @@ This directory is infrastructure code for the VPS edge proxy. Keep it versioned.
 Expose multiple isolated application stacks on one server IP with host-based routing:
 
 - `hms.162.62.230.162.nip.io` -> HMS local upstream `127.0.0.1:18080`
-- `ceai.162.62.230.162.nip.io` -> ce-ai local upstream `127.0.0.1:28080`
+- `ceai.162.62.230.162.nip.io` -> ce-ai patient local upstream `127.0.0.1:28080`
+- `ceai.operator.162.62.230.162.nip.io` -> ce-ai operator local upstream `127.0.0.1:28081`
 
 ## Why separate from app repositories
 
@@ -67,6 +68,7 @@ From your **laptop or any host on the internet** (this is the definitive check):
 ```bash
 curl -I https://hms.162.62.230.162.nip.io
 curl -I https://ceai.162.62.230.162.nip.io
+curl -I https://ceai.operator.162.62.230.162.nip.io
 ```
 
 From the **VPS shell**, a plain `curl` to the public hostname often fails with “connection refused” or timeout even when edge Caddy is healthy. Many providers do not route traffic from an instance back to its own public IP (no hairpin / NAT loopback), so the request never reaches the Docker-published ports on `127.0.0.1`.

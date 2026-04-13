@@ -1,0 +1,14 @@
+# Quality Gate
+
+Code quality is part of completion.
+
+Mandatory outcome:
+- Do not leave introduced lint errors unresolved.
+- Do not leave introduced type errors unresolved.
+- Run the most relevant validation available for the touched area.
+- Do not suppress checks casually.
+- Prefer existing repo scripts and containerized validation commands where available.
+
+If full validation is not practical:
+- Run the most relevant subset.
+- State what was validated and what was not.

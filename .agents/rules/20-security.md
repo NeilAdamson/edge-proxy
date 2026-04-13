@@ -1,0 +1,14 @@
+# Security Baseline
+
+Security requirements:
+- Never hardcode secrets or credentials.
+- Validate all external input at trust boundaries.
+- Avoid SQL injection, shell injection, path traversal, unsafe deserialization, and insecure file handling patterns.
+- Use parameterized queries or safe ORM patterns.
+- Avoid leaking secrets, stack traces, internal hosts, or sensitive values to clients or logs.
+- Redact sensitive values from logs.
+- Preserve authentication, authorization, validation, and secure defaults.
+
+When changing auth, networking, uploads, file access, secrets, or external integrations:
+- Check docs/security.md if present.
+- Prefer the safer implementation when functionally equivalent options exist.

@@ -9,3 +9,7 @@ hms.162.62.230.162.nip.io {
 ceai.162.62.230.162.nip.io {
   reverse_proxy 127.0.0.1:28080
 }
+
+ceai.operator.162.62.230.162.nip.io {
+  reverse_proxy 127.0.0.1:28081
+}

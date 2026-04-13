@@ -1,0 +1,23 @@
+---
+description: Load core repo context before substantial work
+alwaysApply: true
+---
+
+Before substantial implementation, refactoring, or architecture changes, inspect the main project context.
+
+Read these files when present:
+- README.md
+- docs/architecture.md
+- docs/PRD.md
+- docs/deployment.md
+- docs/security.md
+
+Context rules:
+- Use docs/architecture.md to understand boundaries, components, runtime, integrations, and deployment assumptions.
+- Use docs/PRD.md to understand business intent, requirements, scope, and acceptance expectations.
+- Use README.md to understand setup, scripts, and conventions.
+- Check existing Docker files, package manifests, CI config, and nearby source files before changing patterns.
+
+If docs are missing or stale:
+- Follow the dominant implementation pattern already present in the repo.
+- Prefer conservative changes and note any assumptions.

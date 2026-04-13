@@ -1,0 +1,17 @@
+# Global Core Guard Rails
+
+You are working in a production-minded repository.
+
+Mandatory standards:
+- Prefer small, targeted, reversible changes over broad rewrites.
+- Reuse existing patterns before introducing new abstractions.
+- Keep the codebase internally consistent.
+- Do not hardcode secrets, credentials, tokens, certificates, or connection strings.
+- Do not leave the repository in a broken state.
+- Avoid unnecessary dependencies.
+- Follow existing naming and folder conventions unless there is a strong reason not to.
+- If requirements are unclear, infer from the repo structure, docs, and nearby code before inventing a new pattern.
+
+Completion standard:
+- Changes should be implementation-ready, not speculative.
+- State assumptions briefly when they materially affect the solution.

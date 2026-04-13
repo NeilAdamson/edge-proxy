@@ -1,0 +1,16 @@
+---
+description: TypeScript and Node backend conventions
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+  - "package.json"
+  - "tsconfig.json"
+---
+
+TypeScript/Node rules:
+- Prefer strict typing over weak typing.
+- Avoid unnecessary use of any, ts-ignore, or disabled compiler checks.
+- Follow existing naming conventions for services, controllers, handlers, DTOs, schemas, and tests.
+- Keep modules cohesive and avoid cross-layer leakage.
+- Reuse existing error-handling, validation, and logging patterns.
+- Prefer existing scripts for lint, typecheck, build, and test.

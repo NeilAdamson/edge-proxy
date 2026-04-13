@@ -1,0 +1,17 @@
+---
+name: postgres-db-guidelines
+description: Postgres and schema change guard rails
+---
+
+# Postgres and Database Guidelines
+
+Database rules:
+- Treat schema changes as high impact.
+- Prefer additive, reversible, migration-friendly changes.
+- Avoid destructive changes unless explicitly required.
+- Preserve naming consistency for tables, columns, indexes, constraints, and migration files.
+- Use safe parameterized access patterns.
+- Consider rollout impact, defaults, nullability, indexes, and backward compatibility.
+- Update docs if schema or operational assumptions materially change.
+
+*(Applicable to: SQL files, prisma, db, database, migrations directories)*
