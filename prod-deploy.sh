@@ -11,6 +11,13 @@ COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.yml}"
 echo "[INFO] Validating compose file: ${COMPOSE_FILE}"
 docker compose -f "${COMPOSE_FILE}" config >/dev/null
 
+if [ -f "./scripts/verify-edge-routing.sh" ]; then
+  echo "[INFO] Validating edge hostname routing in Caddyfile..."
+  sh ./scripts/verify-edge-routing.sh
+else
+  echo "[WARN] scripts/verify-edge-routing.sh not found; skipping edge route verification."
+fi
+
 echo "[INFO] Starting edge Caddy (master ingress)..."
 docker compose -f "${COMPOSE_FILE}" up -d
 

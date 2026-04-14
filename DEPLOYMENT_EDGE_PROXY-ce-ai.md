@@ -53,6 +53,7 @@ Each public hostname needs a `reverse_proxy` to the **loopback** port the ce-ai 
 
 - Patient → `127.0.0.1:28080`
 - Operator → `127.0.0.1:28081`
+- Loopback upstreams are plain HTTP listeners, so do **not** use `https://127.0.0.1:28080` or `https://127.0.0.1:28081` in `reverse_proxy`. Forcing TLS at this hop can surface browser `ERR_SSL_PROTOCOL_ERROR`.
 
 Example (adjust to match your edge repo’s style, TLS, and logging):
 
@@ -84,6 +85,7 @@ After ce-ai is up and edge Caddy is reloaded:
 1. `curl -fsSI https://ceai.162.62.230.162.nip.io` — should return a response from the patient app.
 2. `curl -fsSI https://ceai.operator.162.62.230.162.nip.io` — should return a response from the operator app.
 3. From the ce-ai repo: `./scripts/verify-dual-ingress.sh` (optional env overrides if you use non-default hostnames).
+4. From edge-proxy repo: `./scripts/verify-edge-routing.sh` to enforce exact hostname -> upstream mapping and fail fast on invalid `https://127.0.0.1:*` upstream syntax.
 
 ## Start order on VPS
 

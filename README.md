@@ -71,6 +71,14 @@ curl -I https://ceai.162.62.230.162.nip.io
 curl -I https://ceai.operator.162.62.230.162.nip.io
 ```
 
+Preflight the edge route wiring on the VPS before restart/reload:
+
+```bash
+cd /opt/edge-proxy
+chmod +x ./scripts/verify-edge-routing.sh
+./scripts/verify-edge-routing.sh
+```
+
 From the **VPS shell**, a plain `curl` to the public hostname often fails with “connection refused” or timeout even when edge Caddy is healthy. Many providers do not route traffic from an instance back to its own public IP (no hairpin / NAT loopback), so the request never reaches the Docker-published ports on `127.0.0.1`.
 
 To test ingress **on the server without hairpin**, force the hostname to resolve to localhost so the packet stays on-box:
@@ -135,6 +143,27 @@ You must see **`host`**. If you see **`bridge`** or a network name, fix deployme
 If HMS uses a port other than `18080`, update **`Caddyfile`** here (and redeploy edge) so `reverse_proxy` matches **exactly** what HMS publishes on `127.0.0.1`.
 
 `28080` for ce-ai fails the same way until that stack is up or the port is published.
+
+### Browser `ERR_SSL_PROTOCOL_ERROR` on ce-ai operator/patient hostnames
+
+If the public URL fails TLS in the browser while upstream loopback checks work, verify edge is not forcing TLS to loopback upstreams:
+
+- `reverse_proxy https://127.0.0.1:28080` is wrong
+- `reverse_proxy https://127.0.0.1:28081` is wrong
+- correct format is plain HTTP upstream (no scheme): `reverse_proxy 127.0.0.1:28080` / `reverse_proxy 127.0.0.1:28081`
+
+Run:
+
+```bash
+cd /opt/edge-proxy
+./scripts/verify-edge-routing.sh
+```
+
+The verifier also enforces exact hostname -> upstream mappings:
+
+- `hms.162.62.230.162.nip.io` -> `127.0.0.1:18080`
+- `ceai.162.62.230.162.nip.io` -> `127.0.0.1:28080`
+- `ceai.operator.162.62.230.162.nip.io` -> `127.0.0.1:28081`
 
 ### HMS stack / upstream
 
